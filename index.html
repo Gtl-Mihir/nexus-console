@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BF Global Integration Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+<style>
+/* ── RESET & BASE ───────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:#030712;
+  color:#f1f5f9;
+  font-size:14px;
+  line-height:1.5;
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#0f172a}
+::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#334155}
+
+/* ── CSS VARIABLES ─────────────────────────────────────────── */
+:root{
+  --bg-base:#030712;
+  --bg-surface:#0a0f1e;
+  --bg-card:#0f172a;
+  --bg-elevated:#1e293b;
+  --border-subtle:#1e293b;
+  --border-default:#334155;
+  --text-primary:#f1f5f9;
+  --text-secondary:#94a3b8;
+  --text-muted:#475569;
+  --text-dim:#334155;
+  --accent-blue:#3b82f6;
+  --accent-blue-dark:#1d4ed8;
+  --accent-purple:#8b5cf6;
+  --accent-amber:#f59e0b;
+  --accent-orange:#f97316;
+  --accent-green:#22c55e;
+  --accent-red:#ef4444;
+  --accent-cyan:#06b6d4;
+  --font-display:'Syne',sans-serif;
+  --radius-sm:4px;
+  --radius-md:6px;
+  --radius-lg:8px;
+}
+
+/* ── ANIMATIONS ─────────────────────────────────────────────── */
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 6px currentColor}50%{opacity:.65;box-shadow:0 0 14px currentColor}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes barGrow{from{height:0}to{height:var(--bar-h)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+.fade-in{animation:fadeIn .3s ease forwards}
+
+/* ── LAYOUT ─────────────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* TOP BAR */
+#topbar{
+  height:52px;
+  background:var(--bg-surface);
+  border-bottom:1px solid var(--border-subtle);
+  display:flex;
+  align-items:center;
+  padding:0 20px 0 0;
+  gap:0;
+  flex-shrink:0;
+  z-index:200;
+  position:relative;
+}
+#brand-area{
+  display:flex;align-items:center;gap:10px;
+  padding:0 16px;
+  width:220px;transition:width .25s;
+  overflow:hidden;white-space:nowrap;
+}
+#brand-area.collapsed{width:52px}
+#menu-btn{
+  background:none;border:none;color:var(--text-muted);
+  cursor:pointer;font-size:18px;padding:4px;
+  flex-shrink:0;line-height:1;
+}
+#brand-name{font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--text-primary)}
+#brand-sub{font-size:9px;color:var(--accent-blue);font-weight:600;letter-spacing:.15em;margin-top:-3px}
+#topbar-right{display:flex;align-items:center;gap:16px;margin-left:auto}
+#sys-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-green)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;animation:pulse 2.5s infinite;display:inline-block}
+#user-chip{display:flex;align-items:center;gap:8px}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--accent-blue-dark);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.user-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.user-role{font-size:10px;color:var(--text-muted)}
+.divider-v{width:1px;height:20px;background:var(--border-subtle)}
+
+/* BODY ROW */
+#body-row{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+#sidebar{
+  width:220px;background:var(--bg-surface);
+  border-right:1px solid var(--border-subtle);
+  display:flex;flex-direction:column;
+  transition:width .25s;overflow:hidden;flex-shrink:0;
+}
+#sidebar.collapsed{width:52px}
+#nav-list{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  width:100%;padding:9px 12px;border-radius:var(--radius-md);
+  margin-bottom:2px;background:transparent;
+  border:1px solid transparent;cursor:pointer;
+  text-align:left;transition:all .15s;
+  color:var(--text-muted);white-space:nowrap;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+}
+.nav-item:hover{background:#111827;color:var(--text-secondary)}
+.nav-item.active{background:var(--bg-elevated);border-color:var(--border-default);color:var(--text-primary)}
+.nav-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;transition:color .15s}
+.nav-item.active .nav-icon{color:var(--accent-blue)}
+.nav-label{transition:opacity .2s}
+#sidebar.collapsed .nav-label{opacity:0;pointer-events:none}
+#sidebar-footer{padding:12px 16px;border-top:1px solid var(--border-subtle);white-space:nowrap;overflow:hidden}
+.sidebar-ver-label{font-size:10px;color:var(--text-dim)}
+.sidebar-ver{font-size:11px;color:var(--text-muted);margin-top:2px}
+#sidebar.collapsed #sidebar-footer{opacity:0;pointer-events:none}
+
+/* MAIN CONTENT */
+#main-content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── SHARED COMPONENTS ───────────────────────────────────────── */
+.page{display:none}.page.active{display:block;animation:fadeIn .3s ease}
+
+.section-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.section-title{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary);margin:0}
+.section-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px}
+.section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.card{
+  background:var(--bg-card);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);padding:20px 24px;
+}
+.card-sm{padding:14px 18px}
+
+/* BUTTONS */
+.btn{
+  padding:8px 16px;border-radius:var(--radius-md);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .15s;font-family:inherit;border:1px solid transparent;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-primary{background:var(--accent-blue-dark);color:#fff;border-color:#2563eb}
+.btn-primary:hover{background:#1e40af}
+.btn-secondary{background:var(--bg-elevated);color:var(--text-secondary);border-color:var(--border-default)}
+.btn-secondary:hover{color:var(--text-primary)}
+.btn-danger{background:#450a0a;color:#f87171;border-color:#991b1b}
+.btn-danger:hover{background:#4d0f0f}
+.btn-ghost{background:transparent;color:var(--accent-blue);border-color:transparent}
+.btn-ghost:hover{background:rgba(59,130,246,.1)}
+.btn-success{background:#052e16;color:var(--accent-green);border-color:#15803d}
+.btn-success:hover{background:#063d1c}
+
+/* STATUS BADGE */
+.badge{
+  padding:2px 8px;border-radius:var(--radius-sm);font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;display:inline-block;
+  border:1px solid transparent;
+}
+.badge-green,.badge-success{background:#052e16;color:#22c55e;border-color:#15803d}
+.badge-amber,.badge-warning{background:#431407;color:#f97316;border-color:#c2410c}
+.badge-red,.badge-error{background:#450a0a;color:#f87171;border-color:#991b1b}
+.badge-blue,.badge-processing{background:#0c1a3e;color:#60a5fa;border-color:#1d4ed8}
+.badge-running{background:#052e16;color:#22c55e;border-color:#15803d}
+.badge-idle{background:#1e1e2e;color:#64748b;border-color:#334155}
+.badge-ignored{background:#1e1e2e;color:#64748b;border-color:#334155}
+.badge-schema,.badge-mapping,.badge-connectivity{background:#450a0a;color:#f87171;border-color:#991b1b}
+.badge-high{background:#450a0a;color:#f87171;border-color:#991b1b}
+.badge-medium{background:#431407;color:#f97316;border-color:#c2410c}
+.badge-low{background:#1a1200;color:#f59e0b;border-color:#b45309}
+
+/* HEALTH DOT */
+.health-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:currentColor;box-shadow:0 0 6px currentColor;
+  display:inline-block;flex-shrink:0;
+}
+.health-dot.green{color:var(--accent-green);animation:pulse 2.5s infinite}
+.health-dot.amber{color:var(--accent-orange)}
+.health-dot.red{color:var(--accent-red)}
+
+/* TABLES */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{border-bottom:1px solid var(--border-subtle)}
+thead th{
+  padding:10px 12px;text-align:left;color:var(--text-muted);
+  font-weight:600;font-size:11px;text-transform:uppercase;
+  letter-spacing:.06em;white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid rgba(30,41,59,.5);transition:background .1s;cursor:pointer}
+tbody tr:hover{background:var(--bg-elevated)}
+tbody td{padding:12px;color:#cbd5e1;white-space:nowrap}
+.td-mono{color:#60a5fa;font-family:monospace;font-size:12px}
+.td-bold{font-weight:600;color:var(--text-primary)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.form-control{
+  width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);
+  color:#cbd5e1;padding:8px 12px;border-radius:var(--radius-md);
+  font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;
+}
+.form-control:focus{border-color:var(--accent-blue)}
+select.form-control option{background:#1e293b}
+.form-check{display:flex;align-items:center;gap:10px;background:var(--bg-elevated);padding:10px 14px;border-radius:var(--radius-md);cursor:pointer;border:1px solid var(--border-default);font-size:13px;color:#cbd5e1}
+.form-check input{accent-color:var(--accent-blue)}
+
+/* PROGRESS BAR */
+.progress-track{background:var(--bg-elevated);border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width 1s ease}
+.progress-green{background:var(--accent-green);box-shadow:0 0 8px rgba(34,197,94,.5)}
+.progress-amber{background:var(--accent-orange);box-shadow:0 0 8px rgba(249,115,22,.5)}
+.progress-red{background:var(--accent-red);box-shadow:0 0 8px rgba(239,68,68,.5)}
+
+/* GRID HELPERS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+.gap-12{gap:12px!important}
+
+/* BACK BUTTON */
+.breadcrumb{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.back-btn{background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:13px;font-family:inherit;padding:0}
+.back-btn:hover{text-decoration:underline}
+.bc-sep{color:var(--border-default)}
+.bc-title{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary);margin:0}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filter-tab{
+  padding:6px 14px;border-radius:var(--radius-md);font-size:12px;
+  font-weight:600;cursor:pointer;text-transform:capitalize;
+  background:var(--bg-elevated);color:var(--text-muted);
+  border:1px solid var(--border-default);transition:all .15s;font-family:inherit;
+}
+.filter-tab.active{background:var(--accent-blue-dark);color:#fff;border-color:#2563eb}
+.filter-tab:hover:not(.active){color:var(--text-secondary)}
+
+/* SELECT SMALL */
+.select-sm{background:var(--bg-elevated);border:1px solid var(--border-default);color:#cbd5e1;padding:6px 10px;border-radius:var(--radius-md);font-size:13px;font-family:inherit;outline:none;cursor:pointer}
+.select-sm:focus{border-color:var(--accent-blue)}
+input[type="date"].select-sm{color:#cbd5e1}
+
+/* ── DASHBOARD ─────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{
+  background:var(--bg-card);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);padding:20px 24px;
+  display:flex;justify-content:space-between;align-items:flex-start;
+}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-weight:600}
+.kpi-value{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--text-primary);line-height:1}
+.kpi-delta{font-size:12px;color:var(--text-muted);margin-top:6px}
+.kpi-delta.pos{color:var(--accent-green)}
+.kpi-delta.neg{color:var(--accent-red)}
+.kpi-icon{font-size:22px;margin-bottom:4px}
+.sparkline-wrap svg{display:block}
+
+/* CHARTS */
+.chart-section{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-label{font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:16px}
+
+/* Bar chart */
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.bar-fill{width:100%;border-radius:3px 3px 0 0;transition:height .6s ease;min-height:4px}
+.bar-col-label{font-size:9px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+
+/* Donut */
+.donut-wrap{display:flex;gap:20px;align-items:center}
+.donut-legend{display:flex;flex-direction:column;gap:7px}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:11px}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.legend-label{color:var(--text-secondary)}
+.legend-count{color:var(--text-primary);font-weight:700;margin-left:auto;padding-left:12px}
+
+/* ── CUSTOMER PIPELINE ──────────────────────────────────────── */
+.pipeline-wrap{display:flex;align-items:stretch;gap:0;overflow-x:auto}
+.pipeline-step{
+  flex:1;min-width:110px;padding:18px 12px;text-align:center;
+  background:var(--bg-elevated);border:2px solid var(--border-default);
+  border-radius:var(--radius-lg);cursor:pointer;transition:all .2s;position:relative;
+}
+.pipeline-step:hover,.pipeline-step.open{border-color:var(--accent-blue)}
+.pipeline-step.open{background:rgba(59,130,246,.1);box-shadow:0 0 16px rgba(59,130,246,.2)}
+.pipeline-arrow{padding:0 8px;color:var(--border-default);font-size:18px;display:flex;align-items:center;flex-shrink:0}
+.pipeline-icon{font-size:22px;margin-bottom:8px}
+.pipeline-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.pipeline-drawer{
+  margin-top:16px;padding:16px;background:#030712;
+  border:1px solid rgba(59,130,246,.3);border-radius:var(--radius-md);
+  display:none;
+}
+.pipeline-drawer.open{display:block}
+.drawer-kv{display:flex;gap:12px;margin-bottom:8px;font-size:12px}
+.drawer-key{color:var(--text-muted);min-width:110px;text-transform:capitalize}
+.drawer-val{color:#cbd5e1}
+.drawer-actions{display:flex;gap:8px;margin-top:14px}
+
+/* FLOW DIAGRAM */
+.flow-diagram{display:flex;align-items:center;gap:0}
+.flow-step{
+  flex:1;padding:20px 12px;text-align:center;border-radius:var(--radius-lg);
+  border:2px solid;position:relative;
+}
+.flow-step.ok{background:#052e16;border-color:#15803d}
+.flow-step.fail{background:#450a0a;border-color:#991b1b}
+.flow-step-icon{font-size:20px;margin-bottom:6px}
+.flow-step.ok .flow-step-icon{color:var(--accent-green)}
+.flow-step.fail .flow-step-icon{color:#f87171}
+.flow-step-name{font-size:12px;font-weight:600}
+.flow-step.ok .flow-step-name{color:var(--accent-green)}
+.flow-step.fail .flow-step-name{color:#f87171}
+.flow-connector{width:32px;height:2px;flex-shrink:0}
+.flow-fail-badge{
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  background:var(--accent-red);color:#fff;font-size:9px;padding:2px 6px;
+  border-radius:4px;font-weight:700;white-space:nowrap;
+}
+
+/* STEPPER */
+.stepper{display:flex;align-items:center;margin-bottom:32px}
+.step-node{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.step-circle{
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:700;transition:all .3s;
+  border:2px solid;
+}
+.step-circle.done{background:var(--accent-blue-dark);border-color:var(--accent-blue);color:#fff}
+.step-circle.active{background:#1e40af;border-color:var(--accent-blue);color:#fff}
+.step-circle.pending{background:var(--bg-elevated);border-color:var(--border-default);color:var(--text-muted)}
+.step-label{font-size:10px;color:var(--text-muted);margin-top:4px;text-align:center;white-space:nowrap}
+.step-label.active{color:#60a5fa}
+.step-connector{flex:1;height:2px;margin:0 4px;margin-bottom:18px;transition:background .3s}
+.step-connector.done{background:var(--accent-blue-dark)}
+.step-connector.pending{background:var(--bg-elevated)}
+
+/* MINI FLOW HEALTH BARS */
+.flow-health-bars{display:flex;gap:3px;margin:10px 0}
+.fhb{flex:1;height:4px;border-radius:2px}
+.fhb.ok{background:var(--accent-green);box-shadow:0 0 4px rgba(34,197,94,.5)}
+.fhb.fail{background:var(--accent-red);box-shadow:0 0 4px rgba(239,68,68,.5)}
+
+/* FLOW CARD */
+.flow-card{
+  background:var(--bg-card);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);padding:18px 20px;cursor:pointer;
+  transition:border-color .2s;
+}
+.flow-card:hover{border-color:var(--border-default)}
+.flow-id{font-size:11px;color:var(--text-muted);font-family:monospace}
+.flow-name{font-size:14px;font-weight:700;color:var(--text-primary);margin:4px 0}
+.flow-customer{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.flow-route{display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:10px}
+.flow-route-arrow{color:var(--border-default)}
+.flow-footer{display:flex;justify-content:space-between;font-size:11px}
+
+/* TABS */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border-subtle);margin-bottom:20px}
+.tab-btn{
+  padding:10px 16px;background:none;border:none;cursor:pointer;
+  font-size:13px;font-weight:600;font-family:inherit;
+  color:var(--text-muted);border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .15s;
+}
+.tab-btn.active{color:#60a5fa;border-bottom-color:var(--accent-blue)}
+.tab-btn:hover:not(.active){color:var(--text-secondary)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* CODE VIEWER */
+.code-view{
+  margin:0;font-size:12px;color:#86efac;font-family:monospace;
+  overflow-x:auto;line-height:1.7;
+}
+.code-view-json{color:#c4b5fd}
+.log-entry{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:12px}
+.log-time{color:var(--text-muted);font-family:monospace;min-width:60px}
+.log-level{font-weight:700;min-width:50px}
+.log-level.info{color:var(--accent-blue)}
+.log-level.error{color:var(--accent-red)}
+.log-level.warn{color:var(--accent-orange)}
+.log-msg{color:#cbd5e1}
+
+/* ERROR CARDS */
+.error-card{
+  background:var(--bg-card);border-left:4px solid;border-top:1px solid var(--border-subtle);
+  border-right:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);
+  border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:20px;margin-bottom:12px;
+}
+.error-card.high{border-left-color:var(--accent-red)}
+.error-card.medium{border-left-color:var(--accent-orange)}
+.error-card.low{border-left-color:var(--accent-amber)}
+.error-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.error-meta{display:flex;gap:10px;align-items:center}
+.error-msg{font-size:13px;color:var(--text-primary);font-weight:600;margin-bottom:8px}
+.error-fix{font-size:12px;color:var(--text-muted);background:#030712;padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px}
+.error-fix-label{color:var(--accent-green);font-weight:600}
+.error-actions{display:flex;gap:8px}
+
+/* MONITORING */
+.health-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.monitor-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px 20px}
+.monitor-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.monitor-label{font-size:13px;font-weight:600;color:var(--text-primary)}
+.monitor-value{font-size:14px;font-weight:700}
+.monitor-threshold{font-size:11px;color:var(--text-muted);margin-top:6px}
+.flow-health-row{
+  background:var(--bg-card);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:8px;
+  display:grid;align-items:center;
+}
+.flow-health-row-grid{display:grid;grid-template-columns:1fr 120px 100px 100px 60px 80px;gap:12px;align-items:center}
+.fhr-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.fhr-customer{font-size:11px;color:var(--text-muted)}
+.fhr-center{text-align:center}
+.fhr-sublabel{font-size:10px;color:var(--text-muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em}
+.fhr-subval{font-size:12px;color:var(--text-secondary)}
+.fhr-bigval{font-size:14px;font-weight:700}
+.fhr-right{text-align:right}
+
+/* ANALYTICS */
+.analytics-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.analytics-kpi-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px 20px}
+.akc-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.akc-value{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1}
+.akc-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* ADMIN */
+.admin-section{font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:16px;text-transform:uppercase;letter-spacing:.06em}
+.admin-item{
+  padding:10px 0;border-bottom:1px solid var(--border-subtle);color:#cbd5e1;
+  font-size:13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  transition:color .1s;
+}
+.admin-item:hover{color:var(--accent-blue)}
+.admin-arrow{color:var(--border-default)}
+
+/* SUCCESS ALERT */
+.alert-success{
+  padding:16px;background:#052e16;border:1px solid #15803d;
+  border-radius:var(--radius-md);margin-top:16px;
+}
+.alert-success-title{color:var(--accent-green);font-size:13px;font-weight:600}
+.alert-success-sub{color:#86efac;font-size:12px;margin-top:4px}
+
+/* MAPPING EDITOR */
+.mapping-grid-head,.mapping-grid-row{
+  display:grid;grid-template-columns:1fr 28px 1fr 100px;gap:8px;margin-bottom:8px;
+}
+.mapping-grid-head span{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.map-input{
+  background:var(--bg-elevated);border:1px solid var(--border-default);
+  color:#60a5fa;padding:6px 10px;border-radius:var(--radius-sm);
+  font-size:12px;font-family:monospace;outline:none;width:100%;
+}
+.map-input.target{color:#a78bfa}
+.map-arrow{display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.map-select{
+  background:var(--bg-elevated);border:1px solid var(--border-default);
+  color:#cbd5e1;padding:6px 8px;border-radius:var(--radius-sm);
+  font-size:11px;font-family:inherit;outline:none;cursor:pointer;
+}
+
+/* FLOW DETAIL FAIL ALERT */
+.flow-fail-alert{
+  margin-top:16px;padding:12px 16px;background:#450a0a;
+  border:1px solid #991b1b;border-radius:var(--radius-md);
+  font-size:12px;color:#fca5a5;
+}
+.flow-fail-alert strong{color:#f87171}
+
+/* TXDETAIL INFO */
+.txinfo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.txinfo-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:12px 16px}
+.txinfo-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.txinfo-val{font-size:13px;color:var(--text-primary);font-weight:600}
+
+/* validation */
+.val-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.val-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.val-status{font-weight:600;font-size:13px}
+.val-row{font-size:12px;color:var(--text-muted);padding:6px 0;border-bottom:1px solid var(--border-subtle)}
+
+/* retry row */
+.retry-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle);font-size:12px}
+.retry-attempt{color:var(--text-muted)}
+.retry-status{color:var(--accent-red);font-weight:600}
+.retry-reason{color:#64748b}
+
+/* topbar date */
+input[type=date]{
+  background:var(--bg-elevated);border:1px solid var(--border-default);
+  color:#cbd5e1;padding:6px 10px;border-radius:var(--radius-md);
+  font-size:13px;font-family:inherit;outline:none;cursor:pointer;
+}
+input[type=date]:focus{border-color:var(--accent-blue)}
+
+/* Customer stat cards */
+.cust-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.cust-stat{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:14px 18px}
+.cust-stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.cust-stat-val{font-family:var(--font-display);font-size:18px;font-weight:700;line-height:1}
+
+/* Inline flow cards in customer detail */
+.cust-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.cust-flow-item{
+  background:#030712;border:1px solid var(--border-subtle);
+  border-radius:var(--radius-md);padding:14px 16px;cursor:pointer;
+  transition:border-color .2s;
+}
+.cust-flow-item:hover{border-color:var(--border-default)}
+.cfi-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.cfi-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.cfi-route{font-size:12px;color:var(--text-muted)}
+.cfi-footer{display:flex;justify-content:space-between;font-size:11px;margin-top:8px}
+
+/* Spinner */
+.spinner{width:20px;height:20px;border:2px solid var(--border-default);border-top-color:var(--accent-blue);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+
+/* Modal overlay */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg-card);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:28px;max-width:500px;width:90%}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary)}
+.modal-body{font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.7}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+/* Notification toast */
+#toast{
+  position:fixed;bottom:24px;right:24px;z-index:400;
+  background:#1e293b;border:1px solid var(--accent-green);
+  border-radius:var(--radius-lg);padding:14px 20px;
+  font-size:13px;color:var(--accent-green);font-weight:600;
+  display:none;animation:fadeIn .3s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+#toast.show{display:block}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div id="brand-area">
+      <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div>
+        <div id="brand-name">BF Global</div>
+        <div id="brand-sub">INTEGRATION CONSOLE</div>
+      </div>
+    </div>
+    <div style="flex:1"></div>
+    <div id="topbar-right">
+      <div id="sys-status"><span class="status-dot"></span> All Systems Operational</div>
+      <div class="divider-v"></div>
+      <div id="user-chip">
+        <div class="avatar">AD</div>
+        <div>
+          <div class="user-name">Admin User</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="body-row">
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div id="nav-list">
+        <button class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+          <span class="nav-icon">⬡</span><span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" data-page="customers" onclick="navigateTo('customers')">
+          <span class="nav-icon">◈</span><span class="nav-label">Customers</span>
+        </button>
+        <button class="nav-item" data-page="flows" onclick="navigateTo('flows')">
+          <span class="nav-icon">⇄</span><span class="nav-label">Flows</span>
+        </button>
+        <button class="nav-item" data-page="transactions" onclick="navigateTo('transactions')">
+          <span class="nav-icon">≡</span><span class="nav-label">Transactions</span>
+        </button>
+        <button class="nav-item" data-page="errors" onclick="navigateTo('errors')">
+          <span class="nav-icon">⚠</span><span class="nav-label">Errors</span>
+        </button>
+        <button class="nav-item" data-page="monitoring" onclick="navigateTo('monitoring')">
+          <span class="nav-icon">◎</span><span class="nav-label">Monitoring</span>
+        </button>
+        <button class="nav-item" data-page="analytics" onclick="navigateTo('analytics')">
+          <span class="nav-icon">▲</span><span class="nav-label">Analytics</span>
+        </button>
+        <button class="nav-item" data-page="admin" onclick="navigateTo('admin')">
+          <span class="nav-icon">⚙</span><span class="nav-label">Admin</span>
+        </button>
+      </div>
+      <div id="sidebar-footer">
+        <div class="sidebar-ver-label">VERSION</div>
+        <div class="sidebar-ver">BF Global Console v4.2.1</div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main-content">
+
+      <!-- ═══════════════════════════════════════ DASHBOARD ═══ -->
+      <div id="page-dashboard" class="page active">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Integration Dashboard</h2>
+            <p class="section-subtitle">Real-time overview of all middleware operations</p>
+          </div>
+          <div class="section-actions">
+            <select class="select-sm" id="dash-customer-filter">
+              <option value="all">All Customers</option>
+            </select>
+            <input type="date" class="select-sm" value="2024-08-01" />
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpi-grid"></div>
+
+        <!-- Charts -->
+        <div class="chart-section">
+          <div class="card">
+            <div class="chart-label">Volume by Customer</div>
+            <div class="bar-chart" id="bar-chart"></div>
+          </div>
+          <div class="card">
+            <div class="chart-label">Errors by Type</div>
+            <div class="donut-wrap">
+              <svg id="donut-svg" width="100" height="100" viewBox="0 0 100 100"></svg>
+              <div class="donut-legend" id="donut-legend"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="chart-label">Recent Transactions</div>
+          <div class="table-wrap" id="dash-txn-table"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ CUSTOMERS ════ -->
+      <div id="page-customers" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Customer Registry</h2>
+            <p class="section-subtitle">Manage customer integration profiles and configurations</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-primary" onclick="navigateTo('customer-add')">+ Add New Customer</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="table-wrap" id="customers-table"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ CUSTOMER DETAIL ═ -->
+      <div id="page-customer-detail" class="page">
+        <div class="breadcrumb">
+          <button class="back-btn" onclick="navigateTo('customers')">← Customers</button>
+          <span class="bc-sep">/</span>
+          <h2 class="bc-title" id="cust-detail-title">—</h2>
+          <span id="cust-detail-dot" class="health-dot"></span>
+        </div>
+        <div class="cust-stat-grid" id="cust-stat-grid"></div>
+        <!-- Pipeline -->
+        <div class="card" style="margin-bottom:24px">
+          <div class="chart-label">Integration Pipeline</div>
+          <div class="pipeline-wrap" id="pipeline-wrap"></div>
+          <div class="pipeline-drawer" id="pipeline-drawer"></div>
+        </div>
+        <!-- Flows -->
+        <div class="card">
+          <div class="chart-label">Active Flows</div>
+          <div class="cust-flow-grid" id="cust-flows-grid"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ ADD CUSTOMER ══ -->
+      <div id="page-customer-add" class="page">
+        <div class="breadcrumb">
+          <button class="back-btn" onclick="navigateTo('customers')">← Customers</button>
+          <span class="bc-sep">/</span>
+          <h2 class="bc-title">New Customer Onboarding</h2>
+        </div>
+        <div class="stepper" id="stepper"></div>
+        <div class="card" id="step-content"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ FLOWS ══════════ -->
+      <div id="page-flows" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Integration Flows</h2>
+            <p class="section-subtitle">All configured integration pipelines across customers</p>
+          </div>
+        </div>
+        <div class="grid-3" id="flows-grid"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ FLOW DETAIL ═══ -->
+      <div id="page-flow-detail" class="page">
+        <div class="breadcrumb">
+          <button class="back-btn" onclick="navigateTo('flows')">← Flows</button>
+          <span class="bc-sep">/</span>
+          <h2 class="bc-title" id="flow-detail-title">—</h2>
+          <span id="flow-detail-badge"></span>
+        </div>
+        <div class="grid-4 gap-12" id="flow-detail-stats"></div>
+        <div class="card" style="margin-top:20px;margin-bottom:24px">
+          <div class="chart-label">Flow Execution Diagram</div>
+          <div class="flow-diagram" id="flow-diagram"></div>
+          <div id="flow-fail-notice"></div>
+        </div>
+        <div class="card">
+          <div class="chart-label">Recent Executions</div>
+          <div class="table-wrap" id="flow-exec-table"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ TRANSACTIONS ══ -->
+      <div id="page-transactions" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Transaction Monitor</h2>
+            <p class="section-subtitle">Real-time transaction tracking across all integration flows</p>
+          </div>
+        </div>
+        <div class="filter-tabs" id="txn-filter-tabs"></div>
+        <div class="card" style="padding:0">
+          <div class="table-wrap" id="transactions-table"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ TXN DETAIL ════ -->
+      <div id="page-transaction-detail" class="page">
+        <div class="breadcrumb">
+          <button class="back-btn" onclick="navigateTo('transactions')">← Transactions</button>
+          <span class="bc-sep">/</span>
+          <h2 class="bc-title" id="txn-detail-id" style="font-family:monospace;font-size:16px">—</h2>
+          <span id="txn-detail-badge"></span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:20px" id="txn-actions"></div>
+        <div class="txinfo-grid" id="txn-info-grid"></div>
+        <div class="tab-bar" id="txn-tab-bar"></div>
+        <div class="card" id="txn-tab-content"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ ERRORS ════════ -->
+      <div id="page-errors" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Error Diagnostics</h2>
+            <p class="section-subtitle">Categorized errors with resolution guidance</p>
+          </div>
+        </div>
+        <div class="filter-tabs" id="error-filter-tabs"></div>
+        <div id="errors-list"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ MONITORING ════ -->
+      <div id="page-monitoring" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">System Health Monitor</h2>
+            <p class="section-subtitle">Real-time infrastructure and flow health indicators</p>
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">System Infrastructure</div>
+        <div class="health-grid" id="health-grid"></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Flow Health Status</div>
+        <div id="flow-health-list"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ ANALYTICS ════ -->
+      <div id="page-analytics" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Analytics &amp; Reporting</h2>
+            <p class="section-subtitle">Aggregated metrics and trend analysis</p>
+          </div>
+        </div>
+        <div class="analytics-kpi" id="analytics-kpi"></div>
+        <div class="chart-section">
+          <div class="card">
+            <div class="chart-label">Transaction Volume by Customer</div>
+            <div class="bar-chart" id="analytics-bar-chart"></div>
+          </div>
+          <div class="card">
+            <div class="chart-label">Error Distribution</div>
+            <div class="donut-wrap">
+              <svg id="analytics-donut" width="100" height="100" viewBox="0 0 100 100"></svg>
+              <div class="donut-legend" id="analytics-donut-legend"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ ADMIN ══════════ -->
+      <div id="page-admin" class="page">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Administration</h2>
+            <p class="section-subtitle">System configuration and management console</p>
+          </div>
+        </div>
+        <div class="grid-3" id="admin-grid"></div>
+      </div>
+
+    </div><!-- end main-content -->
+  </div><!-- end body-row -->
+</div><!-- end app -->
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Confirm Action</div>
+    <div class="modal-body" id="modal-body">Are you sure you want to proceed?</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm-btn" onclick="closeModal()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">✓ Action completed successfully</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   MOCK DATA
+════════════════════════════════════════════════════════════ */
+const CUSTOMERS = [
+  {id:"C001",name:"Acme Financial Ltd",      inbound:"SFTP",         outbound:"REST API",  flows:4, health:"green", lastActivity:"2 min ago",  region:"EU"},
+  {id:"C002",name:"Global Retail Corp",      inbound:"AS2",          outbound:"SOAP",      flows:6, health:"amber", lastActivity:"15 min ago", region:"US"},
+  {id:"C003",name:"NovaTech Insurance",      inbound:"REST",         outbound:"SFTP",      flows:3, health:"red",   lastActivity:"2 hrs ago",  region:"APAC"},
+  {id:"C004",name:"Meridian Healthcare",     inbound:"HL7",          outbound:"REST API",  flows:8, health:"green", lastActivity:"30 sec ago", region:"US"},
+  {id:"C005",name:"Stellar Logistics GmbH",  inbound:"FTP",          outbound:"EDI X12",   flows:5, health:"green", lastActivity:"5 min ago",  region:"EU"},
+  {id:"C006",name:"Pacific Trade Partners",  inbound:"EDI EDIFACT",  outbound:"AS2",       flows:2, health:"amber", lastActivity:"45 min ago", region:"APAC"},
+];
+
+const FLOWS = [
+  {id:"F001",customerId:"C001",name:"Invoice Processing Pipeline",   source:"SFTP",        destination:"ERP System",      lastExec:"2 min ago",  successRate:98.4, status:"running",
+   steps:[{name:"Inbound",ok:true},{name:"Validation",ok:true},{name:"Mapping",ok:true},{name:"Rules",ok:true},{name:"Posting",ok:true},{name:"Callback",ok:true}]},
+  {id:"F002",customerId:"C001",name:"Purchase Order Sync",           source:"SFTP",        destination:"SAP B1",          lastExec:"18 min ago", successRate:95.1, status:"idle",
+   steps:[{name:"Inbound",ok:true},{name:"Validation",ok:true},{name:"Mapping",ok:false},{name:"Rules",ok:false},{name:"Posting",ok:false},{name:"Callback",ok:false}]},
+  {id:"F003",customerId:"C002",name:"Order-to-Cash EDI",             source:"AS2",         destination:"Oracle EBS",      lastExec:"8 min ago",  successRate:87.2, status:"error",
+   steps:[{name:"Inbound",ok:true},{name:"Validation",ok:true},{name:"Mapping",ok:true},{name:"Rules",ok:false},{name:"Posting",ok:false},{name:"Callback",ok:false}]},
+  {id:"F004",customerId:"C003",name:"Claims Adjudication Flow",      source:"REST",        destination:"SFTP Archive",    lastExec:"2 hrs ago",  successRate:61.0, status:"error",
+   steps:[{name:"Inbound",ok:true},{name:"Validation",ok:false},{name:"Mapping",ok:false},{name:"Rules",ok:false},{name:"Posting",ok:false},{name:"Callback",ok:false}]},
+  {id:"F005",customerId:"C004",name:"Patient Record Integration",    source:"HL7",         destination:"FHIR Server",     lastExec:"30 sec ago", successRate:99.9, status:"running",
+   steps:[{name:"Inbound",ok:true},{name:"Validation",ok:true},{name:"Mapping",ok:true},{name:"Rules",ok:true},{name:"Posting",ok:true},{name:"Callback",ok:true}]},
+  {id:"F006",customerId:"C005",name:"Shipment Notification EDI",     source:"FTP",         destination:"EDI X12 Network", lastExec:"5 min ago",  successRate:93.7, status:"running",
+   steps:[{name:"Inbound",ok:true},{name:"Validation",ok:true},{name:"Mapping",ok:true},{name:"Rules",ok:true},{name:"Posting",ok:false},{name:"Callback",ok:false}]},
+];
+
+const TRANSACTIONS = [
+  {id:"TXN-20240801-001",customer:"Acme Financial Ltd",  flow:"Invoice Processing Pipeline",  fileType:"XML",        status:"success",    received:"08:02:14",completed:"08:02:19",duration:"5.2s",retries:0},
+  {id:"TXN-20240801-002",customer:"Global Retail Corp",  flow:"Order-to-Cash EDI",             fileType:"EDI 850",    status:"error",      received:"08:05:33",completed:"08:05:41",duration:"8.1s",retries:2},
+  {id:"TXN-20240801-003",customer:"NovaTech Insurance",  flow:"Claims Adjudication Flow",      fileType:"JSON",       status:"error",      received:"06:10:00",completed:"06:10:05",duration:"5.0s",retries:3},
+  {id:"TXN-20240801-004",customer:"Meridian Healthcare", flow:"Patient Record Integration",    fileType:"HL7 v2.5",   status:"success",    received:"08:09:58",completed:"08:10:01",duration:"3.1s",retries:0},
+  {id:"TXN-20240801-005",customer:"Stellar Logistics",   flow:"Shipment Notification EDI",     fileType:"EDIFACT",    status:"processing", received:"08:11:22",completed:"—",        duration:"—",   retries:0},
+  {id:"TXN-20240801-006",customer:"Acme Financial Ltd",  flow:"Purchase Order Sync",           fileType:"XML",        status:"warning",    received:"07:55:00",completed:"07:55:18",duration:"18.2s",retries:1},
+  {id:"TXN-20240801-007",customer:"Pacific Trade",       flow:"Trade Compliance Check",        fileType:"CSV",        status:"ignored",    received:"07:30:00",completed:"07:30:02",duration:"2.0s", retries:0},
+];
+
+const ERRORS = [
+  {id:"E001",type:"Schema",             message:"Required field 'InvoiceDate' missing in root segment",                                              fix:"Ensure source system populates InvoiceDate before export.",                                             customer:"Global Retail Corp",  time:"08:05:41", severity:"high"},
+  {id:"E002",type:"Mapping",            message:"Source field 'CustomerRef' cannot map to 'ExternalID' — type mismatch (String → Integer)",          fix:"Update mapping rule to cast CustomerRef to Integer or use alternate field.",                           customer:"NovaTech Insurance",  time:"06:10:05", severity:"high"},
+  {id:"E003",type:"Connectivity",       message:"Destination SFTP server timeout after 30s — host unreachable",                                      fix:"Verify destination SFTP host IP/port and firewall rules. Check network connectivity.",                 customer:"Stellar Logistics",   time:"08:11:55", severity:"medium"},
+  {id:"E004",type:"Business Rules",     message:"Invoice amount $0.00 violates minimum threshold rule (min: $1.00)",                                 fix:"Review source data for zero-amount invoices. Add pre-validation filter.",                             customer:"Acme Financial Ltd",  time:"07:55:18", severity:"low"},
+  {id:"E005",type:"Destination Rejection",message:"ERP System returned 422 — Duplicate PO Reference 'PO-98231' already exists",                     fix:"Enable idempotency check in flow configuration. De-duplicate at source.",                            customer:"Global Retail Corp",  time:"08:07:10", severity:"medium"},
+];
+
+const HEALTH_SYSTEM = [
+  {label:"API Latency",     value:42,  unit:"ms",       threshold:200, status:"green"},
+  {label:"Queue Backlog",   value:18,  unit:"msgs",     threshold:500, status:"green"},
+  {label:"Worker Threads",  value:14,  unit:"/16 active",threshold:16, status:"green"},
+  {label:"DB Connections",  value:23,  unit:"/50 used", threshold:50,  status:"amber"},
+];
+
+const ANALYTICS_DATA = {
+  kpis:[
+    {label:"Total Volume",      value:"14,892", sub:"transactions this period",   color:"#3b82f6"},
+    {label:"Throughput",        value:"312/hr",  sub:"avg transactions per hour",   color:"#22c55e"},
+    {label:"Error Rate",        value:"5.8%",    sub:"of all transactions failed",  color:"#ef4444"},
+    {label:"Avg Latency",       value:"4.7s",    sub:"end-to-end processing time",  color:"#f59e0b"},
+    {label:"SLA Compliance",    value:"98.2%",   sub:"within agreed thresholds",    color:"#8b5cf6"},
+    {label:"Data Processed",    value:"48.2 GB", sub:"total payload volume",        color:"#f97316"},
+  ],
+  volumeByCustomer:[
+    {name:"Acme",     volume:3200},
+    {name:"Global",   volume:4100},
+    {name:"NovaTech", volume:1800},
+    {name:"Meridian", volume:5200},
+    {name:"Stellar",  volume:2900},
+    {name:"Pacific",  volume:1700},
+  ],
+  errorsByType:[
+    {type:"Schema",          count:142, color:"#3b82f6"},
+    {type:"Mapping",         count:89,  color:"#8b5cf6"},
+    {type:"Connectivity",    count:34,  color:"#f59e0b"},
+    {type:"Business Rules",  count:67,  color:"#10b981"},
+    {type:"Dest. Rejection", count:29,  color:"#ef4444"},
+  ],
+};
+
+const KPI_DATA = [
+  {label:"Total Transactions", value:"14,892", icon:"⬡", delta:"+12.4% vs yesterday", pos:true,  color:"#3b82f6"},
+  {label:"Success Rate",       value:"94.2%",  icon:"✓", delta:"+0.8% vs yesterday",  pos:true,  color:"#22c55e"},
+  {label:"Failure Rate",       value:"5.8%",   icon:"✕", delta:"-0.8% vs yesterday",  pos:false, color:"#ef4444"},
+  {label:"Avg Processing",     value:"4.7s",   icon:"◷", delta:"-0.2s vs yesterday",  pos:true,  color:"#f59e0b"},
+  {label:"SLA Breaches",       value:"23",     icon:"⚠", delta:"+5 vs yesterday",     pos:false, color:"#f97316"},
+  {label:"Active Flows",       value:"28",     icon:"⬡", delta:"steady",              pos:true,  color:"#8b5cf6"},
+];
+
+/* ════════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════════ */
+let currentPage = 'dashboard';
+let selectedCustomer = null;
+let selectedFlow = null;
+let selectedTxn = null;
+let currentStep = 0;
+let txnStatusFilter = 'all';
+let errorTypeFilter = 'All';
+let activeTab = '';
+let activePipelineStep = null;
+const STEPS = ["General Info","Inbound Config","File Types","Mapping Setup","Outbound Config","SLA & Notifications"];
+
+/* ════════════════════════════════════════════════════════════
+   ROUTER
+════════════════════════════════════════════════════════════ */
+function navigateTo(page, data) {
+  // hide all
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // update nav
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+    if(n.dataset.page === page || n.dataset.page === page.split('-')[0]) n.classList.add('active');
+  });
+
+  // handle sub-pages: map to parent nav
+  const parentMap = {'customer-detail':'customers','customer-add':'customers','flow-detail':'flows','transaction-detail':'transactions'};
+  if(parentMap[page]) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelector(`[data-page="${parentMap[page]}"]`)?.classList.add('active');
+  }
+
+  currentPage = page;
+  const pageEl = document.getElementById(`page-${page}`);
+  if(pageEl) { pageEl.classList.add('active'); window.scrollTo?.(0,0); }
+
+  // render data
+  if(page==='dashboard') renderDashboard();
+  else if(page==='customers') renderCustomers();
+  else if(page==='customer-detail') { selectedCustomer=data; renderCustomerDetail(); }
+  else if(page==='customer-add') { currentStep=0; renderStepper(); renderStep(); }
+  else if(page==='flows') renderFlows();
+  else if(page==='flow-detail') { selectedFlow=data; renderFlowDetail(); }
+  else if(page==='transactions') renderTransactions();
+  else if(page==='transaction-detail') { selectedTxn=data; renderTxnDetail(); }
+  else if(page==='errors') renderErrors();
+  else if(page==='monitoring') renderMonitoring();
+  else if(page==='analytics') renderAnalytics();
+  else if(page==='admin') renderAdmin();
+}
+
+/* ════════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════════ */
+function badge(status, label) {
+  const key = (label||status).toLowerCase().replace(/[^a-z]/g,'');
+  return `<span class="badge badge-${status}">${label||status}</span>`;
+}
+function healthDot(s) { return `<span class="health-dot ${s}"></span>`; }
+function btn(label, variant, onclick, small) {
+  return `<button class="btn btn-${variant}${small?' btn-sm':''}" onclick="${onclick}">${label}</button>`;
+}
+function colorForRate(r) { return r>95?'#22c55e':r>75?'#f97316':'#ef4444'; }
+function sparkSVG(baseVal, color) {
+  const pts = Array.from({length:10},(_,i)=> {
+    const v = Math.max(10,Math.min(90, baseVal + (Math.sin(i*1.5)*15)));
+    return `${i*(100/9)},${100-v}`;
+  });
+  return `<svg width="80" height="28" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = '✓ ' + msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+function openModal(title, body, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  document.getElementById('modal-confirm-btn').onclick = () => { closeModal(); onConfirm && onConfirm(); };
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); }
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const b = document.getElementById('brand-area');
+  s.classList.toggle('collapsed');
+  b.classList.toggle('collapsed');
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER DASHBOARD
+════════════════════════════════════════════════════════════ */
+function renderDashboard() {
+  // KPIs
+  const kpiGrid = document.getElementById('kpi-grid');
+  kpiGrid.innerHTML = KPI_DATA.map(k => `
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value">${k.value}</div>
+        <div class="kpi-delta ${k.pos?'pos':'neg'}">${k.delta}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="kpi-icon" style="color:${k.color}">${k.icon}</span>
+        ${sparkSVG(60, k.color)}
+      </div>
+    </div>
+  `).join('');
+
+  // Customer filter
+  const sel = document.getElementById('dash-customer-filter');
+  if(sel && sel.options.length === 1) {
+    CUSTOMERS.forEach(c => { const o = new Option(c.name, c.id); sel.add(o); });
+  }
+
+  // Bar chart
+  renderBarChart('bar-chart', ANALYTICS_DATA.volumeByCustomer, 120);
+  // Donut
+  renderDonut('donut-svg', 'donut-legend', ANALYTICS_DATA.errorsByType);
+  // Recent txns table
+  const t = document.getElementById('dash-txn-table');
+  t.innerHTML = renderTable(
+    [{key:'id',label:'Transaction ID'},{key:'customer',label:'Customer'},{key:'flow',label:'Flow'},{key:'status',label:'Status'},{key:'received',label:'Received'},{key:'duration',label:'Duration'}],
+    TRANSACTIONS.slice(0,5),
+    (row)=>`navigateTo('transaction-detail', TRANSACTIONS.find(t=>t.id==='${row.id}'))`,
+    r => ({
+      id: `<span class="td-mono">${r.id}</span>`,
+      customer: `<span class="td-bold">${r.customer}</span>`,
+      flow: `<span style="color:#94a3b8;font-size:12px">${r.flow}</span>`,
+      status: badge(r.status),
+    })
+  );
+}
+
+function renderBarChart(containerId, data, height=120) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const max = Math.max(...data.map(d=>d.volume));
+  const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7','#ec4899','#f43f5e'];
+  el.innerHTML = data.map((d,i)=>{
+    const h = Math.round((d.volume/max)*(height-20));
+    return `<div class="bar-col"><div class="bar-fill" style="height:${h}px;background:${colors[i]};box-shadow:0 0 8px ${colors[i]}55"></div><span class="bar-col-label">${d.name}</span></div>`;
+  }).join('');
+}
+
+function renderDonut(svgId, legendId, data) {
+  const svg = document.getElementById(svgId);
+  const leg = document.getElementById(legendId);
+  if(!svg||!leg) return;
+  const total = data.reduce((s,d)=>s+d.count,0);
+  let cum = 0;
+  const paths = data.map((d,i)=>{
+    const pct = d.count/total;
+    const startA = cum*2*Math.PI - Math.PI/2;
+    const endA = (cum+pct)*2*Math.PI - Math.PI/2;
+    const r=40,cx=50,cy=50;
+    const x1=cx+r*Math.cos(startA),y1=cy+r*Math.sin(startA);
+    const x2=cx+r*Math.cos(endA),y2=cy+r*Math.sin(endA);
+    const la=(pct>0.5)?1:0;
+    cum+=pct;
+    return `<path d="M${cx} ${cy} L${x1} ${y1} A${r} ${r} 0 ${la} 1 ${x2} ${y2} Z" fill="${d.color}" opacity="0.9"/>`;
+  });
+  svg.innerHTML = paths.join('') + `<circle cx="50" cy="50" r="22" fill="var(--bg-base)"/><text x="50" y="54" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold" font-family="DM Sans,sans-serif">${total}</text>`;
+  leg.innerHTML = data.map(d=>`
+    <div class="donut-legend-item">
+      <div class="legend-dot" style="background:${d.color}"></div>
+      <span class="legend-label">${d.type||d.name}</span>
+      <span class="legend-count">${d.count}</span>
+    </div>
+  `).join('');
+}
+
+function renderTable(cols, rows, onclickFn, transforms={}) {
+  const ths = cols.map(c=>`<th>${c.label}</th>`).join('');
+  const trs = rows.map(r=>{
+    const tds = cols.map(c=>{
+      const v = typeof transforms === 'function' ? (transforms(r)[c.key]||r[c.key]) : r[c.key];
+      return `<td>${v}</td>`;
+    }).join('');
+    const oc = typeof onclickFn === 'function' ? onclickFn(r) : onclickFn;
+    return `<tr onclick="${oc}">${tds}</tr>`;
+  }).join('');
+  return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER CUSTOMERS
+════════════════════════════════════════════════════════════ */
+function renderCustomers() {
+  const el = document.getElementById('customers-table');
+  const rows = CUSTOMERS.map(c=>`
+    <tr onclick="navigateTo('customer-detail', CUSTOMERS.find(x=>x.id==='${c.id}'))">
+      <td><span class="td-mono">${c.id}</span></td>
+      <td><span class="td-bold">${c.name}</span></td>
+      <td><span style="color:#a78bfa">${c.inbound}</span></td>
+      <td><span style="color:#f59e0b">${c.outbound}</span></td>
+      <td><span style="color:#60a5fa;font-weight:700">${c.flows}</span></td>
+      <td><div style="display:flex;align-items:center;gap:6px">${healthDot(c.health)}<span style="color:#94a3b8;font-size:12px;text-transform:capitalize">${c.health}</span></div></td>
+      <td>${c.lastActivity}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();navigateTo('customer-detail', CUSTOMERS.find(x=>x.id==='${c.id}'))">View Config</button></td>
+    </tr>
+  `).join('');
+  el.innerHTML = `<table><thead><tr><th>Customer ID</th><th>Company Name</th><th>Inbound Protocol</th><th>Outbound Protocol</th><th>Active Flows</th><th>Health</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER CUSTOMER DETAIL
+════════════════════════════════════════════════════════════ */
+function renderCustomerDetail() {
+  const c = selectedCustomer;
+  document.getElementById('cust-detail-title').textContent = c.name;
+  const dot = document.getElementById('cust-detail-dot');
+  dot.className = `health-dot ${c.health}`;
+
+  // Stat cards
+  document.getElementById('cust-stat-grid').innerHTML = [
+    ['Customer ID', c.id, '#60a5fa'],
+    ['Region', c.region, '#a78bfa'],
+    ['Active Flows', c.flows, '#22c55e'],
+    ['Last Activity', c.lastActivity, '#f59e0b'],
+  ].map(([l,v,col])=>`
+    <div class="cust-stat">
+      <div class="cust-stat-label">${l}</div>
+      <div class="cust-stat-val" style="color:${col}">${v}</div>
+    </div>
+  `).join('');
+
+  // Pipeline
+  const pipelineSteps = [
+    {id:'inbound',    label:'Inbound Channel',   icon:'↓', color:'#3b82f6', detail:{Protocol:c.inbound, Host:'sftp.customer.com', Port:'22', Directory:'/outbound/invoices'}},
+    {id:'validation', label:'Validation',         icon:'✓', color:'#8b5cf6', detail:{Schema:'invoice-v2.xsd', Rules:'Required fields, Date format, Amount range', Mode:'Strict'}},
+    {id:'mapping',    label:'Mapping',             icon:'⇄', color:'#f59e0b', detail:{Template:'invoice-to-erp.xslt', 'Mapped Fields':'24', 'Custom Logic':'Currency conversion'}},
+    {id:'rules',      label:'Rule Engine',         icon:'⚡', color:'#10b981', detail:{Rules:'Duplicate check, SLA calc, Priority routing', Version:'v3.1', 'Active Rules':'12'}},
+    {id:'destination',label:'Destination System',  icon:'↑', color:'#f97316', detail:{Protocol:c.outbound, Endpoint:'https://erp.company.com/api', Auth:'OAuth2'}},
+  ];
+
+  const pw = document.getElementById('pipeline-wrap');
+  pw.innerHTML = pipelineSteps.map((s,i)=>`
+    <div class="pipeline-step ${activePipelineStep===s.id?'open':''}" id="ps-${s.id}" onclick="togglePipeline('${s.id}')">
+      <div class="pipeline-icon" style="color:${s.color}">${s.icon}</div>
+      <div class="pipeline-name">${s.label}</div>
+    </div>
+    ${i<pipelineSteps.length-1?'<div class="pipeline-arrow">→</div>':''}
+  `).join('');
+
+  // Drawer
+  const activeS = pipelineSteps.find(s=>s.id===activePipelineStep);
+  const drawer = document.getElementById('pipeline-drawer');
+  if(activeS) {
+    drawer.className = 'pipeline-drawer open';
+    drawer.innerHTML = `
+      <div style="font-size:13px;font-weight:600;color:${activeS.color};margin-bottom:12px">${activeS.label} Configuration</div>
+      ${Object.entries(activeS.detail).map(([k,v])=>`<div class="drawer-kv"><span class="drawer-key">${k}</span><span class="drawer-val">${v}</span></div>`).join('')}
+      <div class="drawer-actions">
+        <button class="btn btn-primary btn-sm" onclick="showToast('Opening editor...')">Edit Configuration</button>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Testing connection...')">Test Connection</button>
+      </div>
+    `;
+  } else {
+    drawer.className = 'pipeline-drawer';
+    drawer.innerHTML = '';
+  }
+
+  // Flows
+  const flows = FLOWS.filter(f=>f.customerId===c.id);
+  const fg = document.getElementById('cust-flows-grid');
+  if(flows.length===0) { fg.innerHTML = '<div style="color:var(--text-muted);font-size:13px">No flows configured.</div>'; return; }
+  fg.innerHTML = flows.map(f=>`
+    <div class="cust-flow-item" onclick="navigateTo('flow-detail', FLOWS.find(x=>x.id==='${f.id}'))">
+      <div class="cfi-head">
+        <span class="cfi-name">${f.name}</span>
+        ${badge(f.status)}
+      </div>
+      <div class="cfi-route">${f.source} → ${f.destination}</div>
+      <div class="flow-health-bars">${f.steps.map(s=>`<div class="fhb ${s.ok?'ok':'fail'}" title="${s.name}"></div>`).join('')}</div>
+      <div class="cfi-footer">
+        <span style="color:var(--text-muted)">Last: ${f.lastExec}</span>
+        <span style="color:${colorForRate(f.successRate)};font-weight:700">${f.successRate}%</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function togglePipeline(id) {
+  activePipelineStep = activePipelineStep===id ? null : id;
+  renderCustomerDetail();
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER STEPPER (ADD CUSTOMER)
+════════════════════════════════════════════════════════════ */
+function renderStepper() {
+  const el = document.getElementById('stepper');
+  el.innerHTML = STEPS.map((s,i)=>{
+    const cls = i<currentStep?'done':i===currentStep?'active':'pending';
+    const lCls = i===currentStep?'active':'';
+    return `
+      <div class="step-node" onclick="goStep(${i})">
+        <div class="step-circle ${cls}">${i<currentStep?'✓':i+1}</div>
+        <span class="step-label ${lCls}">${s}</span>
+      </div>
+      ${i<STEPS.length-1?`<div class="step-connector ${i<currentStep?'done':'pending'}"></div>`:''}
+    `;
+  }).join('');
+}
+function goStep(i) { currentStep=i; renderStepper(); renderStep(); }
+function prevStep() { if(currentStep>0){currentStep--;renderStepper();renderStep();} }
+function nextStep() { if(currentStep<STEPS.length-1){currentStep++;renderStepper();renderStep();} }
+function saveCustomer() { navigateTo('customers'); showToast('Customer profile saved successfully'); }
+
+function renderStep() {
+  const el = document.getElementById('step-content');
+  const navBtns = `
+    <div style="display:flex;justify-content:space-between;margin-top:24px;padding-top:20px;border-top:1px solid var(--border-subtle)">
+      <button class="btn btn-secondary" onclick="prevStep()" ${currentStep===0?'style="opacity:.4;pointer-events:none"':''}>← Previous</button>
+      ${currentStep<STEPS.length-1
+        ? `<button class="btn btn-primary" onclick="nextStep()">Next →</button>`
+        : `<button class="btn btn-success" onclick="saveCustomer()">Save Customer</button>`}
+    </div>`;
+
+  const fieldRow = (fields) => `<div class="form-grid">${fields.map(f=>`<div class="form-group"><label class="form-label">${f}</label><input class="form-control" placeholder="Enter ${f}"/></div>`).join('')}</div>`;
+
+  switch(currentStep) {
+    case 0:
+      el.innerHTML = `<div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:20px">General Information</div>${fieldRow(['Company Name','Legal Name','Customer ID','Account Type','Region','Primary Contact','Email Address','Phone'])}${navBtns}`;
+      break;
+    case 1:
+      el.innerHTML = `<div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:20px">Inbound Channel Configuration</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Protocol</label><select class="form-control"><option>SFTP</option><option>FTP</option><option>AS2</option><option>REST API</option><option>HL7</option><option>EDI EDIFACT</option><option>MQ</option></select></div>
+          ${['Host/Endpoint','Port','Username','Password','Directory Path','Poll Interval (sec)','Encoding'].map(f=>`<div class="form-group"><label class="form-label">${f}</label><input class="form-control" placeholder="Enter ${f}"/></div>`).join('')}
+        </div>${navBtns}`;
+      break;
+    case 2:
+      el.innerHTML = `<div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:20px">Supported File Types</div>
+        <div class="form-grid-3">${['XML','JSON','CSV','EDI 850','EDI 855','EDI 856','HL7 v2.5','EDIFACT','Fixed Width','PDF','XLSX','Plain Text'].map(f=>`<label class="form-check"><input type="checkbox"/> ${f}</label>`).join('')}</div>${navBtns}`;
+      break;
+    case 3:
+      el.innerHTML = `<div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:20px">Field Mapping Configuration</div>
+        <div style="background:#030712;border:1px solid var(--border-subtle);border-radius:6px;padding:16px;margin-bottom:16px">
+          <div class="mapping-grid-head"><span>SOURCE FIELD</span><span></span><span>TARGET FIELD</span><span>TRANSFORM</span></div>
+          ${[['InvoiceNumber','ExternalRef'],['CustomerCode','ClientID'],['InvoiceDate','TransactionDate'],['LineAmount','TotalValue']].map(([s,t])=>`
+            <div class="mapping-grid-row">
+              <input class="map-input" value="${s}"/>
+              <div class="map-arrow">→</div>
+              <input class="map-input target" value="${t}"/>
+              <select class="map-select"><option>Direct</option><option>Cast</option><option>Format</option><option>Lookup</option></select>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Mapping row added')">+ Add Mapping Rule</button>${navBtns}`;
+      break;
+    case 4:
+      el.innerHTML = `<div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:20px">Outbound Destination Configuration</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Protocol</label><select class="form-control"><option>REST API</option><option>SOAP</option><option>SFTP</option><option>AS2</option><option>MQ</option><option>EDI</option></select></div>
+          <div class="form-group"><label class="form-label">Auth Type</label><select class="form-control"><option>None</option><option>Basic</option><option>OAuth2</option><option>API Key</option><option>Certificate</option></select></div>
+          ${['Base URL / Host','Retry Attempts','Retry Delay (sec)','Timeout (sec)'].map(f=>`<div class="form-group"><label class="form-label">${f}</label><input class="form-control" placeholder="Enter ${f}"/></div>`).join('')}
+        </div>${navBtns}`;
+      break;
+    case 5:
+      el.innerHTML = `<div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:20px">SLA &amp; Notification Configuration</div>
+        <div class="form-grid">${['SLA Threshold (min)','Alert Email','Escalation Email','Max Retry Count'].map(f=>`<div class="form-group"><label class="form-label">${f}</label><input class="form-control" placeholder="Enter ${f}"/></div>`).join('')}</div>
+        <div class="alert-success"><div class="alert-success-title">✓ Configuration Complete</div><div class="alert-success-sub">Review all settings before saving the customer profile.</div></div>
+        ${navBtns}`;
+      break;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER FLOWS
+════════════════════════════════════════════════════════════ */
+function renderFlows() {
+  const el = document.getElementById('flows-grid');
+  el.innerHTML = FLOWS.map(f=>{
+    const c = CUSTOMERS.find(x=>x.id===f.customerId);
+    return `
+      <div class="flow-card" onclick="navigateTo('flow-detail', FLOWS.find(x=>x.id==='${f.id}'))">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span class="flow-id">${f.id}</span>${badge(f.status)}
+        </div>
+        <div class="flow-name">${f.name}</div>
+        <div class="flow-customer">${c?.name}</div>
+        <div class="flow-route"><span>${f.source}</span><span class="flow-route-arrow">→</span><span>${f.destination}</span></div>
+        <div class="flow-health-bars">${f.steps.map(s=>`<div class="fhb ${s.ok?'ok':'fail'}" title="${s.name}"></div>`).join('')}</div>
+        <div class="flow-footer">
+          <span style="color:var(--text-muted)">Last: ${f.lastExec}</span>
+          <span style="color:${colorForRate(f.successRate)};font-weight:700">${f.successRate}%</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER FLOW DETAIL
+════════════════════════════════════════════════════════════ */
+function renderFlowDetail() {
+  const f = selectedFlow;
+  const c = CUSTOMERS.find(x=>x.id===f.customerId);
+  document.getElementById('flow-detail-title').textContent = f.name;
+  document.getElementById('flow-detail-badge').innerHTML = badge(f.status);
+
+  // Stats
+  document.getElementById('flow-detail-stats').innerHTML = [
+    ['Customer', c?.name, '#60a5fa'],
+    ['Success Rate', `${f.successRate}%`, colorForRate(f.successRate)],
+    ['Source', f.source, '#a78bfa'],
+    ['Destination', f.destination, '#f59e0b'],
+  ].map(([l,v,col])=>`
+    <div class="cust-stat">
+      <div class="cust-stat-label">${l}</div>
+      <div class="cust-stat-val" style="color:${col};font-size:14px">${v}</div>
+    </div>
+  `).join('');
+
+  // Diagram
+  const failIdx = f.steps.findIndex(s=>!s.ok);
+  const prev = (i) => i>0 && f.steps[i-1].ok;
+  document.getElementById('flow-diagram').innerHTML = f.steps.map((s,i)=>{
+    const isOk = s.ok;
+    const isFail = !isOk && (i===0||f.steps[i-1].ok);
+    return `
+      <div class="flow-step ${isOk?'ok':'fail'}" style="${i>0&&!f.steps[i-1].ok&&!isOk?'opacity:.5':''}">
+        ${isFail?'<div class="flow-fail-badge">FAILED HERE</div>':''}
+        <div class="flow-step-icon">${isOk?'✓':'✕'}</div>
+        <div class="flow-step-name">${s.name}</div>
+      </div>
+      ${i<f.steps.length-1?`<div class="flow-connector" style="background:${f.steps[i+1]?.ok?'#15803d':'#334155'}"></div>`:''}
+    `;
+  }).join('');
+
+  const fn = document.getElementById('flow-fail-notice');
+  if(failIdx>-1) {
+    fn.innerHTML = `<div class="flow-fail-alert">⚠ Flow failed at <strong>${f.steps[failIdx].name}</strong> step. Subsequent steps were not executed.</div>`;
+  } else fn.innerHTML='';
+
+  // Executions
+  const relTxns = TRANSACTIONS.filter(t=>t.flow===f.name);
+  const display = relTxns.length>0 ? relTxns : TRANSACTIONS.slice(0,3);
+  document.getElementById('flow-exec-table').innerHTML = `<table>
+    <thead><tr><th>Transaction</th><th>Status</th><th>Time</th><th>Duration</th><th>Retries</th></tr></thead>
+    <tbody>${display.map(t=>`
+      <tr onclick="navigateTo('transaction-detail', TRANSACTIONS.find(x=>x.id==='${t.id}'))">
+        <td><span class="td-mono">${t.id}</span></td>
+        <td>${badge(t.status)}</td>
+        <td>${t.received}</td>
+        <td>${t.duration}</td>
+        <td style="color:${t.retries>0?'#f97316':'#64748b'}">${t.retries}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER TRANSACTIONS
+════════════════════════════════════════════════════════════ */
+function renderTransactions() {
+  // Filter tabs
+  const filterEl = document.getElementById('txn-filter-tabs');
+  const statuses = ['all','success','error','processing','warning','ignored'];
+  filterEl.innerHTML = statuses.map(s=>`
+    <button class="filter-tab ${txnStatusFilter===s?'active':''}" onclick="setTxnFilter('${s}')">${s==='all'?'All':s}</button>
+  `).join('');
+
+  const data = txnStatusFilter==='all' ? TRANSACTIONS : TRANSACTIONS.filter(t=>t.status===txnStatusFilter);
+  document.getElementById('transactions-table').innerHTML = `<table>
+    <thead><tr><th>Transaction ID</th><th>Customer</th><th>Flow</th><th>File Type</th><th>Status</th><th>Received</th><th>Completed</th><th>Duration</th><th>Retries</th></tr></thead>
+    <tbody>${data.map(t=>`
+      <tr onclick="navigateTo('transaction-detail', TRANSACTIONS.find(x=>x.id==='${t.id}'))">
+        <td><span class="td-mono">${t.id}</span></td>
+        <td><span class="td-bold" style="font-size:12px">${t.customer}</span></td>
+        <td><span style="color:#94a3b8;font-size:12px">${t.flow}</span></td>
+        <td><span style="color:#a78bfa;font-size:12px">${t.fileType}</span></td>
+        <td>${badge(t.status)}</td>
+        <td>${t.received}</td>
+        <td>${t.completed}</td>
+        <td>${t.duration}</td>
+        <td style="color:${t.retries>0?'#f97316':'#64748b'}">${t.retries}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+function setTxnFilter(s) { txnStatusFilter=s; renderTransactions(); }
+
+/* ════════════════════════════════════════════════════════════
+   RENDER TRANSACTION DETAIL
+════════════════════════════════════════════════════════════ */
+function renderTxnDetail() {
+  const t = selectedTxn;
+  document.getElementById('txn-detail-id').textContent = t.id;
+  document.getElementById('txn-detail-badge').innerHTML = badge(t.status);
+
+  // Actions
+  document.getElementById('txn-actions').innerHTML = `
+    <button class="btn btn-primary btn-sm" onclick="openModal('Reprocess Transaction','Reprocess transaction ${t.id}? This will retry the full integration pipeline.',()=>showToast('Transaction queued for reprocessing'))">↺ Reprocess</button>
+    <button class="btn btn-secondary btn-sm" onclick="showToast('Opening editor...')">✎ Edit &amp; Resubmit</button>
+    <button class="btn btn-secondary btn-sm" onclick="showToast('Download started...')">↓ Download</button>
+    <button class="btn btn-danger btn-sm" onclick="openModal('Mark as Ignored','Mark transaction ${t.id} as ignored? It will be excluded from SLA calculations.',()=>showToast('Transaction marked as ignored'))">✗ Mark as Ignored</button>
+  `;
+
+  // Info
+  document.getElementById('txn-info-grid').innerHTML = [
+    ['Customer', t.customer], ['Flow', t.flow], ['Received', t.received], ['Duration', t.duration]
+  ].map(([l,v])=>`<div class="txinfo-card"><div class="txinfo-label">${l}</div><div class="txinfo-val">${v}</div></div>`).join('');
+
+  // Tabs
+  const tabs = ['raw','transformed','validation','logs','history'];
+  const tabLabels = {'raw':'Raw File','transformed':'Transformed','validation':'Validation Results','logs':'Processing Logs','history':'Retry History'};
+  if(!activeTab||tabs.indexOf(activeTab)<0) activeTab='raw';
+  document.getElementById('txn-tab-bar').innerHTML = tabs.map(tb=>`
+    <button class="tab-btn ${activeTab===tb?'active':''}" onclick="setTxnTab('${tb}')">${tabLabels[tb]}</button>
+  `).join('');
+
+  renderTxnTab(t);
+}
+function setTxnTab(t) { activeTab=t; renderTxnDetail(); }
+function renderTxnTab(t) {
+  const el = document.getElementById('txn-tab-content');
+  const rawXml = `&lt;?xml version="1.0" encoding="UTF-8"?&gt;\n&lt;Invoice xmlns="http://www.company.com/invoice/v2"&gt;\n  &lt;Header&gt;\n    &lt;InvoiceNumber&gt;${t.id}&lt;/InvoiceNumber&gt;\n    &lt;InvoiceDate&gt;2024-08-01&lt;/InvoiceDate&gt;\n    &lt;CustomerCode&gt;CUST-001&lt;/CustomerCode&gt;\n    &lt;CustomerRef&gt;REF-98231&lt;/CustomerRef&gt;\n  &lt;/Header&gt;\n  &lt;LineItems&gt;\n    &lt;LineItem&gt;\n      &lt;Description&gt;Professional Services&lt;/Description&gt;\n      &lt;Quantity&gt;10&lt;/Quantity&gt;\n      &lt;UnitPrice&gt;150.00&lt;/UnitPrice&gt;\n      &lt;LineAmount&gt;1500.00&lt;/LineAmount&gt;\n    &lt;/LineItem&gt;\n  &lt;/LineItems&gt;\n  &lt;Total currency="USD"&gt;1500.00&lt;/Total&gt;\n&lt;/Invoice&gt;`;
+  switch(activeTab) {
+    case 'raw': el.innerHTML = `<pre class="code-view">${rawXml}</pre>`; break;
+    case 'transformed': el.innerHTML = `<pre class="code-view code-view-json">${JSON.stringify({ExternalRef:t.id,ClientID:'CUST-001',TransactionDate:'2024-08-01',TotalValue:1500.00,Currency:'USD',Status:'PENDING'},null,2)}</pre>`; break;
+    case 'validation':
+      el.innerHTML = `<div class="val-header">
+        <div class="val-dot" style="background:${t.status==='error'?'#ef4444':'#22c55e'}"></div>
+        <span class="val-status" style="color:${t.status==='error'?'#f87171':'#22c55e'}">${t.status==='error'?'2 validation errors found':'All validation checks passed'}</span>
+      </div>
+      ${['InvoiceNumber — present ✓','InvoiceDate — present, valid ISO format ✓','CustomerCode — present ✓','LineAmount — numeric, non-negative ✓'].map(r=>`<div class="val-row">${r}</div>`).join('')}`;
+      break;
+    case 'logs':
+      const entries = [
+        {time:t.received, level:'INFO', msg:`Transaction received via ${t.fileType} channel`},
+        {time:t.received, level:'INFO', msg:'Schema validation started'},
+        {time:t.received, level:'INFO', msg:'Schema validation passed — 0 errors'},
+        {time:t.received, level:'INFO', msg:'Field mapping applied — 24 fields mapped'},
+        {time:t.completed, level:t.status==='error'?'ERROR':'INFO', msg:t.status==='error'?'Destination rejected payload — HTTP 422':'Successfully posted to destination system'},
+        {time:t.completed, level:'INFO', msg:`Transaction ${t.status==='error'?'failed':'completed'} in ${t.duration}`},
+      ];
+      el.innerHTML = entries.map(e=>`<div class="log-entry"><span class="log-time">${e.time}</span><span class="log-level ${e.level.toLowerCase()}">${e.level}</span><span class="log-msg">${e.msg}</span></div>`).join('');
+      break;
+    case 'history':
+      if(t.retries===0) el.innerHTML = `<div style="color:var(--text-muted);font-size:13px">No retries attempted for this transaction.</div>`;
+      else el.innerHTML = Array.from({length:t.retries},(_,i)=>`<div class="retry-row"><span class="retry-attempt">Attempt ${i+1}</span><span class="retry-status">FAILED</span><span class="retry-reason">Connection timeout after 30s — destination unreachable</span></div>`).join('');
+      break;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER ERRORS
+════════════════════════════════════════════════════════════ */
+function renderErrors() {
+  const types = ['All','Schema','Mapping','Connectivity','Business Rules','Destination Rejection'];
+  document.getElementById('error-filter-tabs').innerHTML = types.map(t=>`
+    <button class="filter-tab ${errorTypeFilter===t?'active':''}" onclick="setErrorFilter('${t}')">${t}</button>
+  `).join('');
+
+  const data = errorTypeFilter==='All' ? ERRORS : ERRORS.filter(e=>e.type===errorTypeFilter);
+  document.getElementById('errors-list').innerHTML = data.map(e=>`
+    <div class="error-card ${e.severity}">
+      <div class="error-header">
+        <div class="error-meta">
+          ${badge('error', e.type)}
+          <span style="font-size:11px;color:var(--text-muted)">${e.customer}</span>
+          <span style="color:var(--border-default)">•</span>
+          <span style="font-size:11px;color:var(--text-muted)">${e.time}</span>
+        </div>
+        ${badge(e.severity)}
+      </div>
+      <div class="error-msg">${e.message}</div>
+      <div class="error-fix"><span class="error-fix-label">Suggested fix: </span>${e.fix}</div>
+      <div class="error-actions">
+        <button class="btn btn-primary btn-sm" onclick="showToast('Retry queued for ${e.id}')">↺ Retry</button>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('Escalate Error','Escalate ${e.id} to L2 support team?',()=>showToast('Error escalated to L2 support'))">↑ Escalate</button>
+        <button class="btn btn-ghost btn-sm" onclick="showToast('Opening transaction...')">View Transaction</button>
+      </div>
+    </div>
+  `).join('');
+}
+function setErrorFilter(t) { errorTypeFilter=t; renderErrors(); }
+
+/* ════════════════════════════════════════════════════════════
+   RENDER MONITORING
+════════════════════════════════════════════════════════════ */
+function renderMonitoring() {
+  // System health
+  document.getElementById('health-grid').innerHTML = HEALTH_SYSTEM.map(s=>{
+    const pct = Math.round((s.value/s.threshold)*100);
+    return `
+      <div class="monitor-card">
+        <div class="monitor-head">
+          <span class="monitor-label">${s.label}</span>
+          <span class="monitor-value" style="color:${s.status==='green'?'#22c55e':s.status==='amber'?'#f97316':'#ef4444'}">${s.value} ${s.unit}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill progress-${s.status}" style="width:${Math.min(100,pct)}%"></div>
+        </div>
+        <div class="monitor-threshold">Threshold: ${s.threshold} ${s.unit.split(' ')[0]}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Flow health
+  document.getElementById('flow-health-list').innerHTML = FLOWS.map(f=>{
+    const c = CUSTOMERS.find(x=>x.id===f.customerId);
+    const cf = f.successRate>95?0:f.successRate>75?1:3;
+    const hSt = f.status==='running'&&f.successRate>95?'green':f.successRate>75?'amber':'red';
+    const lastFail = f.status==='error'?'08:05:41':f.status==='idle'?'07:20:00':'—';
+    return `
+      <div class="flow-health-row">
+        <div class="flow-health-row-grid">
+          <div><div class="fhr-name">${f.name}</div><div class="fhr-customer">${c?.name}</div></div>
+          <div>${badge(f.status)}</div>
+          <div class="fhr-center"><div class="fhr-sublabel">Last Failure</div><div class="fhr-subval">${lastFail}</div></div>
+          <div class="fhr-center"><div class="fhr-sublabel">Consec. Fails</div><div class="fhr-bigval" style="color:${cf>2?'#ef4444':cf>0?'#f97316':'#22c55e'}">${cf}</div></div>
+          <div class="fhr-center"><div class="fhr-sublabel">Health</div>${healthDot(hSt)}</div>
+          <div class="fhr-right"><button class="btn btn-ghost btn-sm" onclick="navigateTo('flow-detail', FLOWS.find(x=>x.id==='${f.id}'))">Details</button></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER ANALYTICS
+════════════════════════════════════════════════════════════ */
+function renderAnalytics() {
+  document.getElementById('analytics-kpi').innerHTML = ANALYTICS_DATA.kpis.map(k=>`
+    <div class="analytics-kpi-card">
+      <div class="akc-label">${k.label}</div>
+      <div class="akc-value" style="color:${k.color}">${k.value}</div>
+      <div class="akc-sub">${k.sub}</div>
+    </div>
+  `).join('');
+  renderBarChart('analytics-bar-chart', ANALYTICS_DATA.volumeByCustomer, 150);
+  renderDonut('analytics-donut', 'analytics-donut-legend', ANALYTICS_DATA.errorsByType);
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER ADMIN
+════════════════════════════════════════════════════════════ */
+function renderAdmin() {
+  const sections = [
+    {title:'User Management',       items:['Manage Users','Role Permissions','Audit Logs','Session Management']},
+    {title:'System Configuration',  items:['Global Settings','Certificate Management','Secret Vault','Email Templates']},
+    {title:'Maintenance',           items:['Queue Management','Purge Old Records','Backup & Restore','System Diagnostics']},
+  ];
+  document.getElementById('admin-grid').innerHTML = sections.map(s=>`
+    <div class="card">
+      <div class="admin-section">${s.title}</div>
+      ${s.items.map(item=>`<div class="admin-item" onclick="showToast('Opening ${item}...')"><span>${item}</span><span class="admin-arrow">→</span></div>`).join('')}
+    </div>
+  `).join('');
+}
+
+/* ════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════ */
+renderDashboard();
+renderAnalytics(); // pre-render to avoid flicker
+</script>
+</body>
+</html>
